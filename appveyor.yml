@@ -1,0 +1,19 @@
+# TODO: update this from inside the build to use branch current version
+version: {build}
+
+image:
+- Visual Studio 2015
+
+environment:
+  matrix:
+    - PYTHON_VER: Python27
+    - PYTHON_VER: Python27-x64
+    - PYTHON_VER: Python34
+    - PYTHON_VER: Python34-x64
+    - PYTHON_VER: Python35
+    - PYTHON_VER: Python35-x64
+    - PYTHON_VER: Python36
+    - PYTHON_VER: Python36-x64
+
+build_script:
+- ps: packaging\build\appveyor.ps1
