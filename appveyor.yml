@@ -1,5 +1,5 @@
 # TODO: update this from inside the build to use branch current version
-version: {build}
+version: '{build}'
 
 image:
 - Visual Studio 2015
@@ -15,5 +15,11 @@ environment:
     - PYTHON_VER: Python36
     - PYTHON_VER: Python36-x64
 
+init:
+- ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 build_script:
 - ps: packaging\build\appveyor.ps1
+
+on_finish:
+- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
