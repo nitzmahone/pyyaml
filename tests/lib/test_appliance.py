@@ -126,11 +126,16 @@ def run(collections, args=None):
     test_filenames = find_test_filenames(DATA)
     include_functions, include_filenames, verbose = parse_arguments(args)
     results = []
+    # specify TESTFILE=spec-08-08 to only run tests for that file
+    testfilename = os.environ.get('TESTFILE')
+
     for function in test_functions:
         if include_functions and function.func_name not in include_functions:
             continue
         if function.unittest:
             for base, exts in test_filenames:
+                if (testfilename is not None) and (base != testfilename):
+                    continue
                 if include_filenames and base not in include_filenames:
                     continue
                 filenames = []
