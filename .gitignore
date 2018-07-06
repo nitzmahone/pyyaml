@@ -1,0 +1,4 @@
+/.idea/*
+/MANIFEST
+/ext/_yaml.c
+/dist/*
