@@ -36,7 +36,7 @@ Set-Content -Path 'C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\amd
 Set-Content -Path 'C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64\vcvars64.bat' '@CALL "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /Release /x64'
 
 # patch VS9 x64 CMake config for VS Express
-reg.exe import packaging\build\FixVS9CMake.reg
+reg.exe import packaging\build\FixVS9CMake.reg 2>&1
 Copy-Item -Path "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\AMD64.VCPlatform.config" -Destination "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\AMD64.VCPlatform.Express.config" -Force
 Copy-Item -Path "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\Itanium.VCPlatform.config" -Destination "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\Itanium.VCPlatform.Express.config" -Force
 
@@ -56,11 +56,11 @@ foreach($kv in $raw_vars_out) {
 & $python -m pip install --upgrade pip
 
 # ensure Cython and wheel are present and up-to-date
-& $python -m pip install --upgrade cython wheel
+& $python -m pip install --upgrade cython wheel --no-warn-script-location
 
 # TODO: get pyyaml-tied libyaml version from branch SoT
 $libyaml_refspec = "0.1.7"
-git clone -b $libyaml_refspec https://github.com/yaml/libyaml.git
+git clone -b $libyaml_refspec https://github.com/yaml/libyaml.git 2>&1
 
 mkdir libyaml\build
 cd libyaml\build
