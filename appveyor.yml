@@ -6,14 +6,16 @@ image:
 
 environment:
   matrix:
-#    - PYTHON_VER: Python27
+    - PYTHON_VER: Python27
     - PYTHON_VER: Python27-x64
-#    - PYTHON_VER: Python34
-#    - PYTHON_VER: Python34-x64
-#    - PYTHON_VER: Python35
-#    - PYTHON_VER: Python35-x64
-#    - PYTHON_VER: Python36
-#    - PYTHON_VER: Python36-x64
+    - PYTHON_VER: Python34
+    - PYTHON_VER: Python34-x64
+    - PYTHON_VER: Python35
+    - PYTHON_VER: Python35-x64
+    - PYTHON_VER: Python36
+    - PYTHON_VER: Python36-x64
+    - PYTHON_VER: Python37
+    - PYTHON_VER: Python37-x64
 
 init:
 - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -21,5 +23,5 @@ init:
 build_script:
 - ps: packaging\build\appveyor.ps1
 
-on_finish:
-- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#on_finish:
+#- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))

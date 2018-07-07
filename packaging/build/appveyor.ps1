@@ -1,6 +1,16 @@
 # TODO: get version number from setup.py
 # Update-AppveyorBuild -Version $dynamic_version
 
+If($env:PYTHON_VER -match "^Python37") {
+    # ensure py37 is present (current Appveyor VS2015 image doesn't include it)
+    If(-not $(Test-Path C:\Python37)) {
+        choco.exe install python3 --version=3.7.0 --forcex86 --force --install-arguments="TargetDir=C:\Python37 PrependPath=0"
+    }
+
+    If(-not $(Test-Path C:\Python37-x64)) {
+        choco.exe install python3 --version=3.7.0 --force --install-arguments="TargetDir=C:\Python37-x64 PrependPath=0"
+    }
+}
 
 $python_path = Join-Path C:\ $env:PYTHON_VER
 $python = Join-Path $python_path python.exe
@@ -21,23 +31,12 @@ if($python_arch -eq 'win-amd64') {
     $vcvars_arch = "x64"
 }
 
-If($env:PYTHON_VER -match "^Python37") {
-    # ensure py37 is present (current Appveyor VS2015 image doesn't include it)
-    If(-not $(Test-Path C:\Python37)) {
-        choco.exe install python3 --version=3.7.0 --forcex86 --force --install-arguments="TargetDir=C:\Python37 PrependPath=0"
-    }
-
-    If(-not $(Test-Path C:\Python37-x64)) {
-        choco.exe install python3 --version=3.7.0 --force --install-arguments="TargetDir=C:\Python37-x64 PrependPath=0"
-    }
-}
-
 # patch 7.0/7.1 vcvars SDK bits up to work with distutils query
 Set-Content -Path 'C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\amd64\vcvarsamd64.bat' '@CALL "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\vcvars64.bat"'
 Set-Content -Path 'C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64\vcvars64.bat' '@CALL "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /Release /x64'
 
 # patch VS9 x64 CMake config for VS Express
-reg.exe import FixVS9CMake.reg
+reg.exe import packaging\build\FixVS9CMake.reg
 Copy-Item -Path "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\AMD64.VCPlatform.config" -Destination "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\AMD64.VCPlatform.Express.config" -Force
 Copy-Item -Path "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\Itanium.VCPlatform.config" -Destination "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\Itanium.VCPlatform.Express.config" -Force
 
@@ -63,13 +62,17 @@ foreach($kv in $raw_vars_out) {
 $libyaml_refspec = "0.1.7"
 git clone -b $libyaml_refspec https://github.com/yaml/libyaml.git
 
-mkdir build
-cd build
+mkdir libyaml\build
+cd libyaml\build
 cmake.exe -G $python_cmake_generator ..
 cmake.exe --build . --config Release
 
 cd ..\..
 
-python setup.py --with-libyaml build_ext -I libyaml\include -L libyaml\build\Release -D YAML_DECLARE_STATIC build test bdist_wheel
+& $python setup.py --with-libyaml build_ext -I libyaml\include -L libyaml\build\Release -D YAML_DECLARE_STATIC build test bdist_wheel
 
-Push-AppveyorArtifact dist\*.whl
+$artifacts = @(Resolve-Path dist\*.whl)
+
+If($artifacts.Length -eq 1) {
+    Push-AppveyorArtifact $artifacts[0]
+}
