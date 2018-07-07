@@ -4,6 +4,10 @@ version: '{build}'
 image:
 - Visual Studio 2015
 
+cache:
+- 'C:\Python37\'
+- 'C:\Python37-x64'
+
 #environment:
 #  matrix:
 #    - PYTHON_VER: Python27

@@ -1,4 +1,8 @@
-# TODO: get version number from setup.py
+# TODO: run in PR/test mode (larger matrix) vs "all-in-one" artifact/packaging mode
+# TODO: use dynamic matrix so PRs are multi-job and tag builds are one (consolidate artifacts)
+# TODO: consider secure credential storage for inline upload on tags? Or keep that all manual/OOB for security...
+# TODO: refactor libyaml/pyyaml tests to enable first-class output for AppVeyor
+# TODO: get version number from setup.py and/or lib(3)/__version__
 # Update-AppveyorBuild -Version $dynamic_version
 
 Function Bootstrap() {
@@ -65,8 +69,8 @@ Function Build-Wheel($python_path) {
     # ensure pip is current (some appveyor pips are not)
     & $python -m pip install --upgrade pip
 
-    # ensure Cython and wheel are present and up-to-date
-    & $python -m pip install --upgrade cython wheel --no-warn-script-location
+    # ensure required-for-build packages are present and up-to-date
+    & $python -m pip install --upgrade cython wheel setuptools --no-warn-script-location
 
     pushd libyaml
     git clean -fdx
@@ -102,6 +106,8 @@ $pythons = @(
 "C:\Python37"
 "C:\Python37-x64"
 )
+
+#$pythons = @("C:\$($env:PYTHON_VER)")
 
 foreach($python in $pythons) {
     Build-Wheel $python
