@@ -79,7 +79,7 @@ Function Build-Wheel($python_path) {
     mkdir libyaml\build
 
     pushd libyaml\build
-    cmake.exe -G $python_cmake_generator ..
+    cmake.exe -G $python_cmake_generator -DYAML_STATIC_LIB_NAME=yaml ..
     cmake.exe --build . --config Release
     popd
 
