@@ -3,6 +3,10 @@ import sys, os, os.path, types, traceback, pprint
 
 DATA = 'tests/data'
 
+# some Python builds (eg 2.7 on Windows) only support raw Unicode chars up to 65535;
+# this will skip tests that would require UTF-16 surrogates on those platforms
+has_ucs4_support = sys.maxunicode > 0xffff
+
 def find_test_functions(collections):
     if not isinstance(collections, list):
         collections = [collections]
@@ -22,6 +26,8 @@ def find_test_filenames(directory):
         if os.path.isfile(os.path.join(directory, filename)):
             base, ext = os.path.splitext(filename)
             if base.endswith('-py2'):
+                continue
+            if not has_ucs4_support and '-ucs4-' in base:
                 continue
             filenames.setdefault(base, []).append(ext)
     filenames = sorted(filenames.items())

@@ -2,3 +2,7 @@
 /MANIFEST
 /ext/_yaml.c
 /dist/*
+/build/*
+/**/*.pyc
+/**/*.pyo
+/**/_pycache_/*
