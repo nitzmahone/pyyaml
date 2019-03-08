@@ -8,21 +8,29 @@
 Function Bootstrap() {
     # ensure py37 is present (current Appveyor VS2015 image doesn't include it)
     If(-not $(Test-Path C:\Python37)) {
-        choco.exe install python3 --version=3.7.0 --forcex86 --force --install-arguments="TargetDir=C:\Python37 PrependPath=0" --no-progress
+        choco.exe install python3 --version=3.7.0 --forcex86 --force --install-arguments="TargetDir=C:\Python37 PrependPath=0" --no-progress -y
     }
 
     If(-not $(Test-Path C:\Python37-x64)) {
-        choco.exe install python3 --version=3.7.0 --force --install-arguments="TargetDir=C:\Python37-x64 PrependPath=0" --no-progress
+        choco.exe install python3 --version=3.7.0 --force --install-arguments="TargetDir=C:\Python37-x64 PrependPath=0" --no-progress -y
     }
 
     # patch 7.0/7.1 vcvars SDK bits up to work with distutils query
     Set-Content -Path 'C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\amd64\vcvarsamd64.bat' '@CALL "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\vcvars64.bat"'
     Set-Content -Path 'C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64\vcvars64.bat' '@CALL "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /Release /x64'
 
-    # patch VS9 x64 CMake config for VS Express
-    reg.exe import packaging\build\FixVS9CMake.reg 2>&1
+    # patch VS9 x64 CMake config for VS Express, hide `reg.exe` stderr noise
+    $noise = reg.exe import packaging\build\FixVS9CMake.reg 2>&1
+
+    If($LASTEXITCODE -ne 0) {
+        throw "reg failed with error code $LASTEXITCODE"
+    }
+
     Copy-Item -Path "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\AMD64.VCPlatform.config" -Destination "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\AMD64.VCPlatform.Express.config" -Force
     Copy-Item -Path "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\Itanium.VCPlatform.config" -Destination "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcpackages\Itanium.VCPlatform.Express.config" -Force
+
+    # git spews all over stderr unless we tell it not to
+    $env:GIT_REDIRECT_STDERR="2>&1"; 
 
     # TODO: get pyyaml-tied libyaml version from branch SoT
     $libyaml_refspec = "master"
