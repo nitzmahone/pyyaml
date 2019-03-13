@@ -1,4 +1,5 @@
 # build outputs
+/.tox/*
 /dist/*
 /build/*
 /ext/_yaml.c
