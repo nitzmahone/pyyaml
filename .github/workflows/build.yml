@@ -1,7 +1,7 @@
 ---
 
 name: Build wheels
-on: push
+on: [push, pull_request]
 jobs:
   manylinux_wheels:
     name: Python ${{ matrix.python_tag }} ${{ matrix.platform }} wheels
@@ -22,7 +22,7 @@ jobs:
           docker image pull "$DOCKER_IMAGE"
       - name: Build manylinux wheels
         env:
-          PYTHON_TAGS: 'cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
+          PYTHON_TAGS: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
         run: |
           docker container run \
             --rm \
@@ -49,7 +49,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        python_version: [3.5, 3.6, 3.7, 3.8]
+        python_version: [3.6, 3.7, 3.8, 3.9]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python_version }}
@@ -66,27 +66,31 @@ jobs:
           brew install coreutils
       - name: Build LibYAML
         run: bash ./packaging/build/libyaml.sh
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '10.9'
       - name: Build MacOS wheels
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '10.9'
         run: bash ./packaging/build/macos.sh
       - uses: actions/upload-artifact@v2
         with:
           name: dist
           path: dist
-  purepy_wheels:
-    name: Pure-Python wheels
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-      - name: Build pure-Python wheels
-        run: |
-          python -m pip install -U wheel setuptools
-          python setup.py --without-libyaml bdist_wheel
-          ls -1 dist
-      - uses: actions/upload-artifact@v2
-        with:
-          name: dist
-          path: dist
+#  purepy_wheels:
+#    name: Pure-Python wheels
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Set up Python ${{ matrix.python_version }}
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: 3.6
+#      - name: Build pure-Python wheels
+#        run: |
+#          python -m pip install -U wheel setuptools
+#          python setup.py --without-libyaml bdist_wheel
+#          ls -1 dist
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          name: dist
+#          path: dist
