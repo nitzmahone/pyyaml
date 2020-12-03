@@ -10,7 +10,7 @@ pushd libyaml
 git config --global advice.detachedHead false
 git reset --hard "$LIBYAML_VERSION"
 ./bootstrap
-./configure --disable-dependency-tracking
+./configure --disable-dependency-tracking --with-pic --enable-shared=no
 make
 make test-all
 # Avoid error where we may be root but not have sudo itself available
