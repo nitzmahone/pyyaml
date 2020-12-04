@@ -9,23 +9,18 @@ jobs:
     strategy:
       matrix:
         platform:
-#          - manylinux1
           - manylinux2014
         arch:
-#          - x86_64
+          - x86_64
           - aarch64
+          - ppc64le
+          - s390x
         python_tags:
           - cp36-cp36m:cp37-cp37m:cp38-cp38:cp39-cp39
-#        include:
-#          - platform: manylinux1
-#            arch:
-#              - x86_64
-#            python_tags: cp27-cp27mu cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
-#          - platform: manylinux2014
-#            arch:
-#              - x86_64
-#              - aarch64
-#            python_tags: cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
+        include:
+          - platform: manylinux1
+            arch: x86_64
+            python_tags: cp27-cp27mu:cp36-cp36m:cp37-cp37m:cp38-cp38:cp39-cp39
     steps:
       - uses: actions/checkout@v2
       - if: matrix.arch == 'x86_64'
