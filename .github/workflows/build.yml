@@ -36,46 +36,46 @@ jobs:
         with:
           name: dist
           path: dist
-  macosx_wheels:
-    name: Python ${{ matrix.python_version }} MacOS wheels
-    # Note: the container MacOS version may differ from the SDK
-    # used to build Python there.  It is the latter that determines
-    # the wheel's platform tag.
-    # https://github.com/actions/virtual-environments/issues/696
-    #
-    # See also:
-    # https://github.com/actions/virtual-environments/blob/master/images/macos/macos-10.15-Readme.md
-    # for environment description.
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        python_version: [3.6, 3.7, 3.8, 3.9]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python_version }}
-      - name: Upgrade build tools
-        # Brew install may issue a warning if already installed
-        # but should exit 0 regardless
-        run: |
-          brew update -q
-          brew upgrade
-          brew install automake
-          brew install coreutils
-      - name: Build LibYAML
-        run: bash ./packaging/build/libyaml.sh
-        env:
-          MACOSX_DEPLOYMENT_TARGET: '10.9'
-      - name: Build MacOS wheels
-        env:
-          MACOSX_DEPLOYMENT_TARGET: '10.9'
-        run: bash ./packaging/build/macos.sh
-      - uses: actions/upload-artifact@v2
-        with:
-          name: dist
-          path: dist
+#  macosx_wheels:
+#    name: Python ${{ matrix.python_version }} MacOS wheels
+#    # Note: the container MacOS version may differ from the SDK
+#    # used to build Python there.  It is the latter that determines
+#    # the wheel's platform tag.
+#    # https://github.com/actions/virtual-environments/issues/696
+#    #
+#    # See also:
+#    # https://github.com/actions/virtual-environments/blob/master/images/macos/macos-10.15-Readme.md
+#    # for environment description.
+#    runs-on: macos-latest
+#    strategy:
+#      matrix:
+#        python_version: [3.6, 3.7, 3.8, 3.9]
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Set up Python ${{ matrix.python_version }}
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: ${{ matrix.python_version }}
+#      - name: Upgrade build tools
+#        # Brew install may issue a warning if already installed
+#        # but should exit 0 regardless
+#        run: |
+#          brew update -q
+#          brew upgrade
+#          brew install automake
+#          brew install coreutils
+#      - name: Build LibYAML
+#        run: bash ./packaging/build/libyaml.sh
+#        env:
+#          MACOSX_DEPLOYMENT_TARGET: '10.9'
+#      - name: Build MacOS wheels
+#        env:
+#          MACOSX_DEPLOYMENT_TARGET: '10.9'
+#        run: bash ./packaging/build/macos.sh
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          name: dist
+#          path: dist
 #  purepy_wheels:
 #    name: Pure-Python wheels
 #    runs-on: ubuntu-latest
