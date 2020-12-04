@@ -22,7 +22,7 @@ jobs:
           docker image pull "$DOCKER_IMAGE"
       - name: Build manylinux wheels
         env:
-          PYTHON_TAGS: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
+          PYTHON_TAGS: 'cp27-cp27m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
         run: |
           docker container run \
             --rm \
