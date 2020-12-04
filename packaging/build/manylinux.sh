@@ -9,8 +9,8 @@ set -eux
 mkdir -p wheelhouse
 rm -vf wheelhouse/*.whl
 
-# PyYAML supports Python 2.7, 3.5-3.8
-for tag in $PYTHON_TAGS; do
+# PyYAML supports Python 2.7, 3.6-3.8
+for tag in $(echo $PYTHON_TAGS | tr ":" " "); do
   PYBIN="/opt/python/${tag}/bin"
   "${PYBIN}/python" -m pip install -U wheel setuptools pip Cython auditwheel
   "${PYBIN}/python" -m pip wheel \

@@ -4,33 +4,64 @@ name: Build wheels
 on: [push, pull_request]
 jobs:
   manylinux_wheels:
-    name: Python ${{ matrix.python_tag }} ${{ matrix.platform }} wheels
+    name: Python ${{ matrix.arch }} ${{ matrix.platform }} wheels
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - platform: manylinux1_x86_64
-            python_tags: cp27-cp27mu cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
-          - platform: manylinux2014_x86_64
-            python_tags: cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
+        platform:
+#          - manylinux1
+          - manylinux2014
+        arch:
+#          - x86_64
+          - aarch64
+        python_tags:
+          - cp36-cp36m:cp37-cp37m:cp38-cp38:cp39-cp39
+#        include:
+#          - platform: manylinux1
+#            arch:
+#              - x86_64
+#            python_tags: cp27-cp27mu cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
+#          - platform: manylinux2014
+#            arch:
+#              - x86_64
+#              - aarch64
+#            python_tags: cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
     steps:
       - uses: actions/checkout@v2
-      - name: Pull Docker image
+      - if: matrix.arch == 'x86_64'
+        name: Pull Docker image
         run: |
-          DOCKER_IMAGE="quay.io/pypa/${{ matrix.platform }}"
+          DOCKER_IMAGE="quay.io/pypa/${{ matrix.platform }}_${{ matrix.arch }}"
           echo "DOCKER_IMAGE=$DOCKER_IMAGE" >> $GITHUB_ENV
           docker image pull "$DOCKER_IMAGE"
-      - name: Build manylinux wheels
+      - if: matrix.arch == 'x86_64'
+        name: Build manylinux wheels
         env:
           PYTHON_TAGS: ${{ matrix.python_tags }}
         run: |
           docker container run \
             --rm \
-            -e PLAT=${{ matrix.platform }} \
+            -e PLAT=${{ matrix.platform }}_${{ matrix.arch}} \
             -e PYTHON_TAGS="$PYTHON_TAGS" \
             -v "$(pwd)":/io \
             --workdir '/io' \
             "$DOCKER_IMAGE" \
+            /io/packaging/build/manylinux.sh
+      - if: matrix.arch != 'x86_64'
+        uses: ./.github/actions/run-on-arch-action
+        name: build foreign arch
+        env:
+          PYTHON_TAGS: ${{ matrix.python_tags }}
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ${{ matrix.platform }}
+          githubToken: ${{ github.token }}
+          dockerRunArgs: |
+            --env PLAT="${{ matrix.platform }}_${{ matrix.arch }}"
+            --env PYTHON_TAGS=$PYTHON_TAGS
+            -v "$(pwd)":/io
+          run: |
+            echo "hello from the container"
             /io/packaging/build/manylinux.sh
       - uses: actions/upload-artifact@v2
         with:
