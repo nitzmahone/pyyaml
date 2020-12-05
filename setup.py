@@ -59,7 +59,7 @@ int main(void) {
 """
 
 
-import sys, os.path, platform, warnings
+import sys, os, os.path, platform, warnings
 
 from distutils import log
 from distutils.core import setup, Command
@@ -76,7 +76,7 @@ if 'setuptools.extension' in sys.modules:
     sys.modules['distutils.command.build_ext'].Extension = _Extension
 
 with_cython = False
-if 'sdist' in sys.argv:
+if 'sdist' in sys.argv or os.environ.get('PYYAML_FORCE_CYTHON') == '1':
     # we need cython here
     with_cython = True
 try:
@@ -141,7 +141,7 @@ class Distribution(_Distribution):
         if implementation != 'CPython':
             return False
         if isinstance(ext, Extension):
-            with_ext = getattr(self, ext.attr_name)
+            with_ext = getattr(self, ext.attr_name) or os.environ.get('PYYAML_FORCE_{0}'.format(ext.feature_name.upper())) == '1'
             return with_ext
         else:
             return True

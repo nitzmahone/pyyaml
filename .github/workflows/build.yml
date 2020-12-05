@@ -56,7 +56,6 @@ jobs:
             --env PYTHON_TAGS=$PYTHON_TAGS
             -v "$(pwd)":/io
           run: |
-            echo "hello from the container"
             /io/packaging/build/manylinux.sh
       - uses: actions/upload-artifact@v2
         with:
