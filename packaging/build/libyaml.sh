@@ -10,6 +10,7 @@ pushd libyaml
 git config --global advice.detachedHead false
 git reset --hard "$LIBYAML_VERSION"
 ./bootstrap
+# these args will force-build only a static library
 ./configure --disable-dependency-tracking --with-pic --enable-shared=no
 make
 make test-all

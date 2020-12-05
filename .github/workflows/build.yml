@@ -3,104 +3,97 @@
 name: Build wheels
 on: [push, pull_request]
 jobs:
-  manylinux_wheels:
-    name: Python ${{ matrix.arch }} ${{ matrix.platform }} wheels
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform:
-          - manylinux2014
-        arch:
-          - x86_64
-          - aarch64
-          - ppc64le
-          - s390x
-        python_tags:
-          - cp36-cp36m:cp37-cp37m:cp38-cp38:cp39-cp39
-        include:
-          - platform: manylinux1
-            arch: x86_64
-            python_tags: cp27-cp27mu:cp36-cp36m:cp37-cp37m:cp38-cp38:cp39-cp39
-    steps:
-      - uses: actions/checkout@v2
-      - if: matrix.arch == 'x86_64'
-        name: Pull Docker image
-        run: |
-          DOCKER_IMAGE="quay.io/pypa/${{ matrix.platform }}_${{ matrix.arch }}"
-          echo "DOCKER_IMAGE=$DOCKER_IMAGE" >> $GITHUB_ENV
-          docker image pull "$DOCKER_IMAGE"
-      - if: matrix.arch == 'x86_64'
-        name: Build manylinux wheels
-        env:
-          PYTHON_TAGS: ${{ matrix.python_tags }}
-        run: |
-          docker container run \
-            --rm \
-            -e PLAT=${{ matrix.platform }}_${{ matrix.arch}} \
-            -e PYTHON_TAGS="$PYTHON_TAGS" \
-            -v "$(pwd)":/io \
-            --workdir '/io' \
-            "$DOCKER_IMAGE" \
-            /io/packaging/build/manylinux.sh
-      - if: matrix.arch != 'x86_64'
-        uses: ./.github/actions/run-on-arch-action
-        name: build foreign arch
-        env:
-          PYTHON_TAGS: ${{ matrix.python_tags }}
-        with:
-          arch: ${{ matrix.arch }}
-          distro: ${{ matrix.platform }}
-          githubToken: ${{ github.token }}
-          dockerRunArgs: |
-            --env PLAT="${{ matrix.platform }}_${{ matrix.arch }}"
-            --env PYTHON_TAGS=$PYTHON_TAGS
-            -v "$(pwd)":/io
-          run: |
-            /io/packaging/build/manylinux.sh
-      - uses: actions/upload-artifact@v2
-        with:
-          name: dist
-          path: dist
-#  macosx_wheels:
-#    name: Python ${{ matrix.python_version }} MacOS wheels
-#    # Note: the container MacOS version may differ from the SDK
-#    # used to build Python there.  It is the latter that determines
-#    # the wheel's platform tag.
-#    # https://github.com/actions/virtual-environments/issues/696
-#    #
-#    # See also:
-#    # https://github.com/actions/virtual-environments/blob/master/images/macos/macos-10.15-Readme.md
-#    # for environment description.
-#    runs-on: macos-latest
+#  manylinux_wheels:
+#    name: Python ${{ matrix.arch }} ${{ matrix.platform }} wheels
+#    runs-on: ubuntu-latest
 #    strategy:
 #      matrix:
-#        python_version: [3.6, 3.7, 3.8, 3.9]
+#        platform:
+#          - manylinux2014
+#        arch:
+#          - x86_64
+#          - aarch64
+#          - ppc64le
+#          - s390x
+#        python_tags:
+#          - cp36-cp36m:cp37-cp37m:cp38-cp38:cp39-cp39
+#        include:
+#          - platform: manylinux1
+#            arch: x86_64
+#            python_tags: cp27-cp27mu:cp36-cp36m:cp37-cp37m:cp38-cp38:cp39-cp39
 #    steps:
 #      - uses: actions/checkout@v2
-#      - name: Set up Python ${{ matrix.python_version }}
-#        uses: actions/setup-python@v2
-#        with:
-#          python-version: ${{ matrix.python_version }}
-#      - name: Upgrade build tools
-#        # Brew install may issue a warning if already installed
-#        # but should exit 0 regardless
+#      - if: matrix.arch == 'x86_64'
+#        name: Pull Docker image
 #        run: |
-#          brew update -q
-#          brew upgrade
-#          brew install automake
-#          brew install coreutils
-#      - name: Build LibYAML
-#        run: bash ./packaging/build/libyaml.sh
+#          DOCKER_IMAGE="quay.io/pypa/${{ matrix.platform }}_${{ matrix.arch }}"
+#          echo "DOCKER_IMAGE=$DOCKER_IMAGE" >> $GITHUB_ENV
+#          docker image pull "$DOCKER_IMAGE"
+#      - if: matrix.arch == 'x86_64'
+#        name: Build manylinux wheels
 #        env:
-#          MACOSX_DEPLOYMENT_TARGET: '10.9'
-#      - name: Build MacOS wheels
+#          PYTHON_TAGS: ${{ matrix.python_tags }}
+#        run: |
+#          docker container run \
+#            --rm \
+#            -e PLAT=${{ matrix.platform }}_${{ matrix.arch}} \
+#            -e PYTHON_TAGS="$PYTHON_TAGS" \
+#            -v "$(pwd)":/io \
+#            --workdir '/io' \
+#            "$DOCKER_IMAGE" \
+#            /io/packaging/build/manylinux.sh
+#      - if: matrix.arch != 'x86_64'
+#        uses: ./.github/actions/run-on-arch-action
+#        name: build foreign arch
 #        env:
-#          MACOSX_DEPLOYMENT_TARGET: '10.9'
-#        run: bash ./packaging/build/macos.sh
+#          PYTHON_TAGS: ${{ matrix.python_tags }}
+#        with:
+#          arch: ${{ matrix.arch }}
+#          distro: ${{ matrix.platform }}
+#          githubToken: ${{ github.token }}
+#          dockerRunArgs: |
+#            --env PLAT="${{ matrix.platform }}_${{ matrix.arch }}"
+#            --env PYTHON_TAGS=$PYTHON_TAGS
+#            -v "$(pwd)":/io
+#          run: |
+#            /io/packaging/build/manylinux.sh
 #      - uses: actions/upload-artifact@v2
 #        with:
 #          name: dist
 #          path: dist
+  macos_wheels:
+    name: Python MacOS wheels
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python_tags:
+        - cp27* cp36* cp37* cp38* cp39*
+    steps:
+      - uses: actions/checkout@v2
+      - name: Upgrade build tools
+        # Brew install may issue a warning if already installed
+        # but should exit 0 regardless
+
+#          brew update -q
+#          brew upgrade
+
+        run: |
+          brew install automake
+          brew install coreutils
+      - name: Build LibYAML
+        run: bash ./packaging/build/libyaml.sh
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '10.9'
+      - name: Build MacOS wheels
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '10.9'
+          CIBW_BUILD: ${{ matrix.python_tags }}
+          CIBW_BUILD_VERBOSITY: 1
+        run: bash ./packaging/build/macos.sh
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist
 #  purepy_wheels:
 #    name: Pure-Python wheels
 #    runs-on: ubuntu-latest
