@@ -1,0 +1,83 @@
+---
+
+name: Python test/build
+on: [push, pull_request]
+jobs:
+  manylinux_libyaml:
+    name: libyaml ${{ matrix.arch }} ${{ matrix.platform }}
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        platform:
+          - manylinux1
+          - manylinux2010
+          - manylinux2014
+        arch:
+          - x86_64
+    container: quay.io/pypa/${{ matrix.platform }}_${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: get requested embedded libyaml version
+        id: libyaml_version
+        run: |
+          echo "::set-output name=libyaml_ref::$(cat ./LIBYAML_REF)"
+      - name: fetch libyaml ${{ steps.libyaml_version.outputs.libyaml_ref }}
+        uses: actions/checkout@v2
+        with:
+          repository: yaml/libyaml
+          ref: ${{ steps.libyaml_version.outputs.libyaml_ref }}
+          path: libyaml
+      - name: build libyaml
+        run: |
+          ./bootstrap
+          ./configure --disable-dependency-tracking --with-pic --enable-shared=no
+          make
+          make test-all
+      - name: store libyaml artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: libyaml_${{ matrix.platform }}_${{ matrix.arch }}
+          path: libyaml/
+  manylinux_pyyaml:
+    name: pyyaml ${{ matrix.arch }} ${{ matrix.platform }}
+    needs: manylinux_libyaml
+    runs-on: ubuntu-20.04
+    env:
+      FORCE_PYYAML_CYTHON: 1
+      FORCE_PYYAML_LIBYAML: 1
+    strategy:
+      matrix:
+        platform:
+          - manylinux1
+          - manylinux2010
+          - manylinux2014
+        arch:
+          - x86_64
+        python_version:
+          - cp36-cp36m
+          - cp37-cp37m
+          - cp38-cp38
+          - cp39-cp39
+        include:
+          - platform: manylinux1
+            python_versions:
+              - cp27-cp27mu
+    container: quay.io/pypa/${{ matrix.platform }}_${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        name: libyaml_${{ matrix.platform }}_${{ matrix.arch }}
+        path: libyaml/
+      - name: test
+        run: make testall PYTHON=/opt/python/${{ matrix.python_version }}/bin/python
+      - name: sdist
+        run: make sdist PYTHON=/opt/python/${{ matrix.python_version }}/bin/python
+      - name: wheel
+        run: /opt/python/${{ matrix.python_version }}/bin/python -m pip wheel -w wheelhouse/ .
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: |
+            dist
+            wheelhouse
