@@ -1,0 +1,164 @@
+---
+
+name: PyYAML CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      build_wheels:
+        default: false
+env:
+  LIBYAML_REPO: https://github.com/yaml/libyaml
+  LIBYAML_REF: '0.2.2'
+jobs:
+  linux_libyaml:
+    name: libyaml ${{ matrix.arch }} ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform:
+          - manylinux2014
+          #- manylinux2010
+          - manylinux1
+        arch:
+          - x86_64
+    env:
+      DOCKER_IMAGE: quay.io/pypa/${{ matrix.platform }}_${{ matrix.arch }}
+    steps:
+      - name: check cached libyaml state
+        id: cached_libyaml
+        uses: actions/cache@v2
+        with:
+          path: |
+            libyaml
+          key: ${{ matrix.platform }}_${{ matrix.arch }}_${{ env.LIBYAML_REF }}
+
+      - name: checkout pyyaml
+        uses: actions/checkout@v2
+        if: steps.cached_libyaml.outputs.cache-hit != 'true'
+
+      - name: build libyaml
+        run: |
+          docker run --rm -v $(pwd):/io -e LIBYAML_REF -e LIBYAML_REPO --workdir /io "$DOCKER_IMAGE" /io/packaging/build/libyaml.sh
+        if: steps.cached_libyaml.outputs.cache-hit != 'true'
+
+      - name: cache libyaml
+        uses: actions/cache@v2
+        with:
+          path: |
+            libyaml
+          key: ${{ matrix.platform }}_${{ matrix.arch }}_${{ env.LIBYAML_REF }}
+        if: steps.cached_libyaml.outputs.cache-hit != 'true'
+  linux_pyyaml:
+    needs: linux_libyaml
+    name: pyyaml ${{ matrix.arch }} ${{ matrix.platform }} ${{ matrix.python_tag }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform:
+          - manylinux2014
+#          - manylinux2010
+          - manylinux1
+        arch:
+          - x86_64
+        python_tag:
+          # NB: manylinux >=2014 containers don't have Python 2.7, so we have to use exclude to skip it
+          - cp27-cp27mu
+          - cp36-cp36m
+          - cp37-cp37m
+          - cp38-cp38
+          - cp39-cp39
+        exclude:
+          - platform: manylinux2014
+            arch: x86_64
+            python_tag: cp27-cp27mu
+    env:
+      AW_PLAT: ${{ matrix.platform }}_${{ matrix.arch }}
+      DOCKER_IMAGE: quay.io/pypa/${{ matrix.platform }}_${{ matrix.arch }}
+      PYTHON_TAG: ${{ matrix.python_tag }}
+      PYYAML_BUILD_WHEELS: 1
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: fetch cached libyaml
+        id: cached_libyaml
+        uses: actions/cache@v2
+        with:
+          path: |
+            libyaml
+          key: ${{ matrix.platform }}_${{ matrix.arch }}_${{ env.LIBYAML_REF }}
+
+      - name: ensure libyaml fetched
+        run: exit 1
+        if: steps.cached_libyaml.outputs.cache-hit != 'true'
+
+      - name: start container
+        run: |
+          docker run --name worker -t -d --rm -v $(pwd):/io "$DOCKER_IMAGE" bash
+
+      - name: build/test/package
+        run: |
+          docker exec -e PYTHON_TAG -e PYYAML_RUN_TESTS -e PYYAML_BUILD_WHEELS -e AW_PLAT --workdir /io worker \
+          /io/packaging/build/manylinux.sh
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheel_${{ matrix.platform }}_${{ matrix.arch }}_${{ matrix.python_tag }}
+          path: dist
+
+#      - name: Pull Docker image
+#        run: |
+#          DOCKER_IMAGE="quay.io/pypa/${{ matrix.platform }}_${{ matrix.arch }}"
+#          echo "DOCKER_IMAGE=$DOCKER_IMAGE" >> $GITHUB_ENV
+#          docker image pull "$DOCKER_IMAGE"
+#      - if: github.events.
+#        name: Build manylinux wheels
+#        env:
+#          PYTHON_TAGS: ${{ matrix.python_tags }}
+#        run: |
+#          docker container run \
+#            --rm \
+#            -e PLAT=${{ matrix.platform }}_${{ matrix.arch}} \
+#            -e PYTHON_TAGS="$PYTHON_TAGS" \
+#            -v "$(pwd)":/io \
+#            --workdir '/io' \
+#            "$DOCKER_IMAGE" \
+#            /io/packaging/build/manylinux.sh
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          name: dist
+#          path: dist
+#  macos_wheels:
+#    name: Python MacOS wheels
+#    runs-on: macos-latest
+#    strategy:
+#      matrix:
+#        python_tags:
+#        - cp27* cp36* cp37* cp38* cp39*
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Upgrade build tools
+#        # Brew install may issue a warning if already installed
+#        # but should exit 0 regardless
+#
+##          brew update -q
+##          brew upgrade
+#
+#        run: |
+#          brew install automake
+#          brew install coreutils
+#      - name: Build LibYAML
+#        run: bash ./packaging/build/libyaml.sh
+#        env:
+#          MACOSX_DEPLOYMENT_TARGET: '10.9'
+#      - name: Build MacOS wheels
+#        env:
+#          MACOSX_DEPLOYMENT_TARGET: '10.9'
+#          CIBW_BUILD: ${{ matrix.python_tags }}
+#          CIBW_BUILD_VERBOSITY: 1
+#        run: bash ./packaging/build/macos.sh
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          name: dist
+#          path: dist
