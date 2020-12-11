@@ -4,7 +4,7 @@ import yaml
 
 def main():
     # various smoke tests on an installed PyYAML with extension
-    if not getattr(yaml, '_yaml'):
+    if not getattr(yaml, '_yaml', None):
         raise Exception('C extension is not available at `yaml._yaml`')
 
     print('embedded libyaml version is {0}'.format(yaml._yaml.get_version_string()))
