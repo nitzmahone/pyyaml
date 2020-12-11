@@ -55,9 +55,15 @@ if [[ ${PYYAML_BUILD_WHEELS:-0} -eq 1 ]]; then
     auditwheel repair --plat "${AW_PLAT}" "$whl" -w dist/
   done
 
+  # this should only match one
+  "${PYBIN}/python" -m pip install dist/*.whl
+
+  "${PYBIN}/python" packaging/build/smoketest.py
+
   ls -1 dist/
 
   echo "::endgroup::"
+
 else
   echo "skipping wheel build..."
 fi
