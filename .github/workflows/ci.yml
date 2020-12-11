@@ -22,7 +22,7 @@ jobs:
       - name: install a python
         uses: actions/setup-python@v2
         with:
-          python_version: 3.x
+          python-version: 3.x
 
       - name: install build deps
         run: |
@@ -31,7 +31,7 @@ jobs:
       - name: build sdist
         run: |
           # FIXME: move this to `build` once our build is cleaned up
-          PYYAML_FORCE_CYTHON=1 python setup.py
+          PYYAML_FORCE_CYTHON=1 python setup.py sdist
 
       # FIXME: smoke test the sdist; in particular, ensure that we can build the extension wheel from it
 
@@ -128,10 +128,10 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: wheel_${{ matrix.platform }}_${{ matrix.arch }}_${{ matrix.python_tag }}
-          path: dist
+          path: dist/*.whl
 
   consolidate_artifacts:
-    needs: [linux_pyyaml, python_sdist]
+    needs: [macos_pyyaml, linux_pyyaml, python_sdist]
     name: consolidate artifacts to a single archive
     runs-on: ubuntu-latest
     steps:
@@ -149,6 +149,7 @@ jobs:
         with:
           name: dist
           path: dist
+
 
   macos_libyaml:
     name: libyaml ${{ matrix.arch }} ${{ matrix.platform }}
@@ -181,36 +182,50 @@ jobs:
         if: steps.cached_libyaml.outputs.cache-hit != 'true'
 
 
-#  macos_wheels:
-#    name: Python MacOS wheels
-#    runs-on: macos-latest
-#    strategy:
-#      matrix:
-#        python_tags:
-#        - cp27* cp36* cp37* cp38* cp39*
-#    steps:
-#      - uses: actions/checkout@v2
-#      - name: Upgrade build tools
-#        # Brew install may issue a warning if already installed
-#        # but should exit 0 regardless
-#
-##          brew update -q
-##          brew upgrade
-#
-#        run: |
-#          brew install automake
-#          brew install coreutils
-#      - name: Build LibYAML
-#        run: bash ./packaging/build/libyaml.sh
-#        env:
-#          MACOSX_DEPLOYMENT_TARGET: '10.9'
-#      - name: Build MacOS wheels
-#        env:
-#          MACOSX_DEPLOYMENT_TARGET: '10.9'
-#          CIBW_BUILD: ${{ matrix.python_tags }}
-#          CIBW_BUILD_VERBOSITY: 1
-#        run: bash ./packaging/build/macos.sh
-#      - uses: actions/upload-artifact@v2
-#        with:
-#          name: dist
-#          path: dist
+  macos_pyyaml:
+    needs: macos_libyaml
+    name: pyyaml ${{ matrix.arch }} ${{ matrix.platform }} ${{ matrix.python_tag }}
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      matrix:
+        platform:
+          - macos-10.15
+        arch:
+          - x86_64
+        python_tag:
+          - cp27*
+          - cp36*
+          - cp37*
+          - cp38*
+          - cp39*
+    steps:
+      - name: checkout pyyaml
+        uses: actions/checkout@v2
+
+      - name: get cached libyaml state
+        id: cached_libyaml
+        uses: actions/cache@v2
+        with:
+          path: |
+            libyaml
+          key: libyaml_${{ matrix.platform }}_${{ matrix.arch }}_${{ env.LIBYAML_REF }}
+
+      - name: ensure libyaml fetched
+        run: exit 1
+        if: steps.cached_libyaml.outputs.cache-hit != 'true'
+
+      - name: install a python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: build/test/package
+        env:
+          CIBW_BUILD: ${{ matrix.python_tag }}
+          CIBW_BUILD_VERBOSITY: 1
+        run: bash ./packaging/build/macos.sh
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/*.whl
