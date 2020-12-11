@@ -32,7 +32,7 @@ jobs:
         with:
           path: |
             libyaml
-          key: ${{ matrix.platform }}_${{ matrix.arch }}_${{ env.LIBYAML_REF }}
+          key: libyaml_${{ matrix.platform }}_${{ matrix.arch }}_${{ env.LIBYAML_REF }}
 
       - name: checkout pyyaml
         uses: actions/checkout@v2
@@ -43,13 +43,6 @@ jobs:
           docker run --rm -v $(pwd):/io -e LIBYAML_REF -e LIBYAML_REPO --workdir /io "$DOCKER_IMAGE" /io/packaging/build/libyaml.sh
         if: steps.cached_libyaml.outputs.cache-hit != 'true'
 
-      - name: cache libyaml
-        uses: actions/cache@v2
-        with:
-          path: |
-            libyaml
-          key: ${{ matrix.platform }}_${{ matrix.arch }}_${{ env.LIBYAML_REF }}
-        if: steps.cached_libyaml.outputs.cache-hit != 'true'
   linux_pyyaml:
     needs: linux_libyaml
     name: pyyaml ${{ matrix.arch }} ${{ matrix.platform }} ${{ matrix.python_tag }}
@@ -87,7 +80,7 @@ jobs:
         with:
           path: |
             libyaml
-          key: ${{ matrix.platform }}_${{ matrix.arch }}_${{ env.LIBYAML_REF }}
+          key: libyaml_${{ matrix.platform }}_${{ matrix.arch }}_${{ env.LIBYAML_REF }}
 
       - name: ensure libyaml fetched
         run: exit 1

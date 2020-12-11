@@ -5,8 +5,8 @@ set -eux
 # build the requested version of libyaml locally
 echo "::group::fetch libyaml ${LIBYAML_REF}"
 git config --global advice.detachedHead false
-git clone --branch "$LIBYAML_REF" "$LIBYAML_REPO" ../libyaml
-pushd ../libyaml
+git clone --branch "$LIBYAML_REF" "$LIBYAML_REPO" libyaml
+pushd libyaml
 git reset --hard "$LIBYAML_REF"
 echo "::endgroup::"
 

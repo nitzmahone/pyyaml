@@ -18,16 +18,19 @@ set -eux
 #done
 
 PYBIN="/opt/python/${PYTHON_TAG}/bin"
-PYYAML_FORCE_CYTHON=1
-PYYAML_FORCE_LIBYAML=1
+
+# modern tools don't allow us to pass eg, --with-libyaml, so we force it via env
+export PYYAML_FORCE_CYTHON=1
+export PYYAML_FORCE_LIBYAML=1
 
 # we're using a private build of libyaml, so set paths to favor that instead of whatever's laying around
-C_INCLUDE_PATH=../libyaml/include:${C_INCLUDE_PATH:-}
-LIBRARY_PATH=../libyaml/src/.libs:${LIBRARY_PATH:-}
-LD_LIBRARY_PATH=../libyaml/src/.libs:${LD_LIBRARY_PATH:-}
+export C_INCLUDE_PATH=libyaml/include:${C_INCLUDE_PATH:-}
+export LIBRARY_PATH=libyaml/src/.libs:${LIBRARY_PATH:-}
+export LD_LIBRARY_PATH=libyaml/src/.libs:${LD_LIBRARY_PATH:-}
 
 # install deps
 echo "::group::installing build deps"
+# FIXME: installing Cython here won't be necessary once we fix tests, since the build is PEP517 and declares its own deps
 "${PYBIN}/python" -m pip install build==0.1.0 Cython
 echo "::endgroup::"
 
@@ -43,8 +46,7 @@ fi
 
 if [[ ${PYYAML_BUILD_WHEELS:-0} -eq 1 ]]; then
   echo "::group::building wheels"
-  # FIXME: clean this up to use `build` once we're doing a proper PEP517 build
-  "${PYBIN}/python" -m pip wheel -w tempwheel --no-build-isolation .
+  "${PYBIN}/python" -m build -w -o tempwheel .
   echo "::endgroup::"
 
   echo "::group::validating wheels"
