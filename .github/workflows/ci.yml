@@ -48,7 +48,8 @@ jobs:
     strategy:
       matrix:
         platform:
-          - manylinux2014
+          # manylinux1 is forward-compatible to 2010/2014
+          #- manylinux2014
           #- manylinux2010
           - manylinux1
         arch:
@@ -80,8 +81,9 @@ jobs:
     strategy:
       matrix:
         platform:
-          - manylinux2014
-#          - manylinux2010
+          # so long as manylinux1 container builds work, they're forward-compatible to 2010/2014
+          # - manylinux2014
+          # - manylinux2010
           - manylinux1
         arch:
           - x86_64
@@ -92,10 +94,10 @@ jobs:
           - cp37-cp37m
           - cp38-cp38
           - cp39-cp39
-        exclude:
-          - platform: manylinux2014
-            arch: x86_64
-            python_tag: cp27-cp27mu
+#        exclude:
+#          - platform: manylinux2014
+#            arch: x86_64
+#            python_tag: cp27-cp27mu
     env:
       AW_PLAT: ${{ matrix.platform }}_${{ matrix.arch }}
       DOCKER_IMAGE: quay.io/pypa/${{ matrix.platform }}_${{ matrix.arch }}
@@ -130,6 +132,7 @@ jobs:
           name: wheel_${{ matrix.platform }}_${{ matrix.arch }}_${{ matrix.python_tag }}
           path: dist/*.whl
 
+  # FIXME: always build artifacts, but only store them if asked
   consolidate_artifacts:
     needs: [macos_pyyaml, linux_pyyaml, python_sdist]
     name: consolidate artifacts to a single archive

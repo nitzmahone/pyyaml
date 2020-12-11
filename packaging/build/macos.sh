@@ -22,11 +22,20 @@ export LD_LIBRARY_PATH=$(cd libyaml/src/.libs; pwd):${LD_LIBRARY_PATH:-}
 export PYYAML_FORCE_CYTHON=1
 export PYYAML_FORCE_LIBYAML=1
 
-# tweak CIBW behavior to run our tests for us
-export CIBW_BEFORE_BUILD='pip install Cython && make testall PYTHON=python'
+if [[ ${PYYAML_RUN_TESTS:-1} -eq 1 ]]; then
+  # tweak CIBW behavior to run our tests for us
+  export CIBW_BEFORE_BUILD='pip install Cython && make testall PYTHON=python'
+else
+  echo "skipping test suite..."
+fi
+
 export CIBW_TEST_COMMAND='python {project}/packaging/build/smoketest.py'
 
 ${PYBIN} -m cibuildwheel --platform macos .
+
+
+# FIXME: always build artifacts, but only store them if asked
+# FIXME: store wheel filename as an output so we can upload the naked artifact
 
 mkdir -p dist
 mv wheelhouse/* dist/

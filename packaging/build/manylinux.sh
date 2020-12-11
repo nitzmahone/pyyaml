@@ -2,22 +2,7 @@
 
 set -eux
 
-# FIXME: externalize the libyaml build for each container/arch as an ephemeral artifact
-#./packaging/build/libyaml.sh
-
-# PyYAML supports Python 2.7, 3.6-3.8
-#for tag in $(echo $PYTHON_TAGS | tr ":" " "); do
-#  PYBIN="/opt/python/${tag}/bin"
-#  "${PYBIN}/python" -m pip install setuptools build==0.1.0 Cython auditwheel
-#  "${PYBIN}/python" -m build \
-#    --verbose \
-#    --no-deps \
-#    --global-option '--with-libyaml' \
-#    --global-option "build_ext" \
-#    -w wheelhouse .
-#done
-
-PYBIN="/opt/python/${PYTHON_TAG}/bin"
+PYBIN="/opt/python/${PYTHON_TAG}/bin/python"
 
 # modern tools don't allow us to pass eg, --with-libyaml, so we force it via env
 export PYYAML_FORCE_CYTHON=1
@@ -31,34 +16,36 @@ export LD_LIBRARY_PATH=libyaml/src/.libs:${LD_LIBRARY_PATH:-}
 # install deps
 echo "::group::installing build deps"
 # FIXME: installing Cython here won't be necessary once we fix tests, since the build is PEP517 and declares its own deps
-"${PYBIN}/python" -m pip install build==0.1.0 Cython
+"${PYBIN}" -m pip install build==0.1.0 Cython
 echo "::endgroup::"
 
 if [[ ${PYYAML_RUN_TESTS:-1} -eq 1 ]]; then
   echo "::group::running test suite"
   # FIXME: split tests out for easier direct execution w/o Makefile
   # run full test suite
-  make testall PYTHON="${PYBIN}/python"
+  make testall PYTHON="${PYBIN}"
   echo "::endgroup::"
 else
   echo "skipping test suite..."
 fi
 
+
+# FIXME: always build wheels by default, but only store them if asked
 if [[ ${PYYAML_BUILD_WHEELS:-0} -eq 1 ]]; then
   echo "::group::building wheels"
-  "${PYBIN}/python" -m build -w -o tempwheel .
+  "${PYBIN}" -m build -w -o tempwheel .
   echo "::endgroup::"
 
   echo "::group::validating wheels"
-  # FIXME: smoke-test individual wheels by name/platform (no wildcard)
+  # FIXME: validate only one wheel and set its filename as an output
   for whl in tempwheel/*.whl; do
     auditwheel repair --plat "${AW_PLAT}" "$whl" -w dist/
   done
 
   # this should only match one
-  "${PYBIN}/python" -m pip install dist/*.whl
+  "${PYBIN}" -m pip install dist/*.whl
 
-  "${PYBIN}/python" packaging/build/smoketest.py
+  "${PYBIN}" packaging/build/smoketest.py
 
   ls -1 dist/
 
