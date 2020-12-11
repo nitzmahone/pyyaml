@@ -30,15 +30,23 @@ jobs:
 
       - name: build sdist
         run: |
-          # FIXME: move this to `build` once our build is cleaned up
+          # FIXME: move this to `build` once our build is PEP517 OK
           PYYAML_FORCE_CYTHON=1 python setup.py sdist
+
+          # ensure exactly one artifact
+          shopt -s nullglob
+          DISTFILES=(dist/*.tar.gz)
+          if [[ ${DISTFILES[@]} -ne 1 ]]; then
+            echo "unexpected content in dist dir: $(ls dist/*.tar.gz)"
+            exit 1
+          fi
 
       # FIXME: smoke test the sdist; in particular, ensure that we can build the extension wheel from it
 
       - name: upload sdist artifact
         uses: actions/upload-artifact@v2
         with:
-          name: sdist
+          name: dist
           path: dist/*.tar.gz
 
 
@@ -127,32 +135,41 @@ jobs:
           docker exec -e PYTHON_TAG -e PYYAML_RUN_TESTS -e PYYAML_BUILD_WHEELS -e AW_PLAT --workdir /io worker \
           /io/packaging/build/manylinux.sh
 
+          # ensure exactly one artifact
+          shopt -s nullglob
+          DISTFILES=(dist/*.whl)
+          if [[ ${#DISTFILES[@]} -ne 1 ]]; then
+            echo -e "unexpected dist content:\n\n$(ls)"
+            exit 1
+          fi
+
       - uses: actions/upload-artifact@v2
         with:
-          name: wheel_${{ matrix.platform }}_${{ matrix.arch }}_${{ matrix.python_tag }}
+          #name: wheel_${{ matrix.platform }}_${{ matrix.arch }}_${{ matrix.python_tag }}
+          name: dist
           path: dist/*.whl
 
-  # FIXME: always build artifacts, but only store them if asked
-  consolidate_artifacts:
-    needs: [macos_pyyaml, linux_pyyaml, python_sdist]
-    name: consolidate artifacts to a single archive
-    runs-on: ubuntu-latest
-    steps:
-      - name: fetch all artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: all_artifacts
-
-      - name: consolidate all artifacts to a flat dir
-        run: |
-          mkdir dist && cp all_artifacts/*/* dist/
-
-      - name: upload consolidated artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: dist
-          path: dist
-
+#  # FIXME: always build artifacts, but only store them if asked
+#  consolidate_artifacts:
+#    needs: [macos_pyyaml, linux_pyyaml, python_sdist]
+#    name: consolidate artifacts to a single archive
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: fetch all artifacts
+#        uses: actions/download-artifact@v2
+#        with:
+#          path: all_artifacts
+#
+#      - name: consolidate all artifacts to a flat dir
+#        run: |
+#          mkdir dist && cp all_artifacts/*/* dist/
+#
+#      - name: upload consolidated artifacts
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: dist
+#          path: dist
+#
 
   macos_libyaml:
     name: libyaml ${{ matrix.arch }} ${{ matrix.platform }}
@@ -226,7 +243,16 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python_tag }}
           CIBW_BUILD_VERBOSITY: 1
-        run: bash ./packaging/build/macos.sh
+        run: |
+          bash ./packaging/build/macos.sh
+
+          # ensure exactly one artifact
+          shopt -s nullglob
+          DISTFILES=(dist/*.whl)
+          if [[ ${#DISTFILES[@]} -ne 1 ]]; then
+            echo -e "unexpected dist content:\n\n$(ls)"
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v2
         with:
