@@ -16,14 +16,15 @@ export LD_LIBRARY_PATH=libyaml/src/.libs:${LD_LIBRARY_PATH:-}
 # install deps
 echo "::group::installing build deps"
 # FIXME: installing Cython here won't be necessary once we fix tests, since the build is PEP517 and declares its own deps
-"${PYBIN}" -m pip install build==0.1.0 Cython
+"${PYBIN}" -m pip install build==0.1.0 Cython pytest
 echo "::endgroup::"
 
 if [[ ${PYYAML_RUN_TESTS:-1} -eq 1 ]]; then
   echo "::group::running test suite"
   # FIXME: split tests out for easier direct execution w/o Makefile
   # run full test suite
-  make testall PYTHON="${PYBIN}"
+  #make testall PYTHON="${PYBIN}"
+  PYTHONPATH=./lib3 "${PYBIN}" -m pytest tests/lib3/ --junitxml testoutput/pyyaml.xml || true
   echo "::endgroup::"
 else
   echo "skipping test suite..."

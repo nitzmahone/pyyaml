@@ -18,3 +18,5 @@ _pycache_/*
 # local IDE state
 /.idea/*
 
+
+testoutput/pyyaml.xml
