@@ -173,7 +173,7 @@ jobs:
     - name: upload intermediate test results
       uses: actions/upload-artifact@v2
       with:
-        name: Test Output ${{matrix.platform}}_${{matrix.arch}}
+        name: Test Output ${{matrix.platform}}_${{matrix.arch}}_${{matrix.python_tag}}
         path: testoutput/pyyaml.xml
 
 
