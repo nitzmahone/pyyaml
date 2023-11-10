@@ -49,16 +49,12 @@ def _fail(input, test):
     print("Input: >>" + input + "<<")
     print(test)
 
-class MyCoreLoader(yaml.BaseLoader): pass
-class MyJSONLoader(yaml.BaseLoader): pass
-class MyCoreDumper(yaml.CommonDumper): pass
-class MyJSONDumper(yaml.CommonDumper): pass
+from yaml.tagset import core, json
 
-MyCoreLoader.init_tags('core')
-MyJSONLoader.init_tags('json')
-
-MyCoreDumper.init_tags('core')
-MyJSONDumper.init_tags('json')
+MyCoreLoader = yaml.BaseLoader.config(tagset=core)
+MyJSONLoader = yaml.BaseLoader.config(tagset=json)
+MyCoreDumper = yaml.CommonDumper.config(tagset=core)
+MyJSONDumper = yaml.CommonDumper.config(tagset=json)
 
 # The tests/data/yaml11.schema file is copied from
 # https://github.com/perlpunk/yaml-test-schema/blob/master/data/schema-yaml11.yaml

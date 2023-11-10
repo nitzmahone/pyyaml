@@ -14,8 +14,10 @@ try:
 except ImportError as ie:
     FastestBaseDumper = None
 
+from .config import CommonDumperConfig
 
-class BaseDumper(Emitter, Serializer, BaseRepresenter, BaseResolver, DumperConfigMixin):
+
+class BaseDumper(Emitter, Serializer, BaseRepresenter, BaseResolver, CommonDumperConfig):
 
     def __init__(self, stream,
             default_style=None, default_flow_style=False,
@@ -43,7 +45,7 @@ if not FastestBaseDumper:
 
 
 
-class SafeDumper(Emitter, Serializer, SafeRepresenter, Resolver, DumperConfigMixin):
+class SafeDumper(Emitter, Serializer, SafeRepresenter, Resolver, CommonDumperConfig):
 
     def __init__(self, stream,
             default_style=None, default_flow_style=False,
@@ -61,7 +63,8 @@ class SafeDumper(Emitter, Serializer, SafeRepresenter, Resolver, DumperConfigMix
                 default_flow_style=default_flow_style, sort_keys=sort_keys)
         Resolver.__init__(self)
 
-class CommonDumper(Emitter, Serializer, CommonRepresenter, BaseResolver, DumperConfigMixin):
+
+class CommonDumper(Emitter, Serializer, CommonRepresenter, BaseResolver, CommonDumperConfig):
 
     def __init__(self, stream,
             default_style=None, default_flow_style=False,
@@ -85,7 +88,7 @@ class CommonDumper(Emitter, Serializer, CommonRepresenter, BaseResolver, DumperC
         cls.init_resolvers(tagset.resolvers)
 
 
-class Dumper(Emitter, Serializer, Representer, Resolver, DumperConfigMixin):
+class Dumper(Emitter, Serializer, Representer, Resolver, CommonDumperConfig):
 
     def __init__(self, stream,
             default_style=None, default_flow_style=False,
@@ -104,7 +107,7 @@ class Dumper(Emitter, Serializer, Representer, Resolver, DumperConfigMixin):
         Resolver.__init__(self)
 
 
-_12_CoreDumper = CommonDumper.config(type_name='_12_CoreDumper', tagset=tagset.core)
-_12_JSONDumper = CommonDumper.config(type_name='_12_JSONDumper', tagset=tagset.json)
+_12_CoreDumper = CommonDumper.config(tagset=tagset.core)
+_12_JSONDumper = CommonDumper.config(tagset=tagset.json)
 
 

@@ -1,24 +1,61 @@
 from __future__ import annotations
 
+import inspect
 import typing as t
 
-from functools import partialmethod
+if t.TYPE_CHECKING and not hasattr(t, 'override'):
+    from typing_extensions import override
+    t.override = override
+
+from functools import lru_cache, partialmethod
 from .tagset import TagSet
 
-T = t.TypeVar('T')
 
+class _YamlConfigurable(t.Protocol):
+    _actual_sig: t.ClassVar[t.Callable[..., t.Any] | None]
+    _stored_config: t.ClassVar[dict[str, t.Any] | None] = {}
 
-class LoaderConfigMixin:
     @classmethod
-    # FIXME: fix tagset type to use DataClasses, at least externally?
-    def config(cls: type[T], type_name: str | None = None, tagset: TagSet | ... = ..., **kwargs) -> type[T]:
-        if not type_name:
-            # FIXME: hash the inputs for a dynamic type name and cache it?
-            type_name = f'abcd_from_{cls.__name__}'
+    def config(cls, *args, **kwargs) -> t.Any: ...
 
-        new_type = t.cast(cls, type(type_name, (cls, ), {}))
+    @classmethod
+    def _config_impl(cls, **kwargs) -> t.Any: ...
+
+    def __init_subclass__(cls, **kwargs):
+        if cls.config.__name__ != '_config_impl':
+            cls._actual_sig = cls.config
+
+        cls.config = cls._config_impl
+
+
+class _LoaderProtocol(t.Protocol):
+    @classmethod
+    def load(cls, stream, loader: _LoaderProtocol | None = None, **kwargs) -> t.Any:
+        import yaml
+        return yaml._old_load(stream, Loader=loader or cls)
+
+
+def _type_factory(base_type: type[T], **kwargs) -> type[T]:
+    return type(f'Customized_{base_type.__name__}', (base_type,), {})
+
+
+class LoaderConfigMixin(_YamlConfigurable, _LoaderProtocol):
+    @classmethod
+    # FIXME: @t.override
+    #@lru_cache  # FIXME: feels wrong, probably an issue
+    def _config_impl(cls, **kwargs) -> t.Any:
+        sig = inspect.signature(cls._actual_sig)
+        ba = sig.bind(**kwargs)
+
+        new_type = _type_factory(cls)
+
+        # FIXME: until all the builtins bootstrap this way, figure out a sane default for origin classes and user classes?
+        # FIXME: merge existing config;
+        new_type._stored_config = ba.kwargs
 
         # FIXME: add support for arbitrary kwargs passthru ala dumper?
+
+        tagset = ba.kwargs.get('tagset', ...)
 
         if tagset is not ...:
             # FIXME: provide a base class hook/method for this reset
@@ -30,39 +67,40 @@ class LoaderConfigMixin:
         return new_type
 
 
-class DumperConfigMixin:
+class CommonLoaderConfig(LoaderConfigMixin):
     @classmethod
-    def config(cls: type[T], type_name: str | None = None,
-               tagset: TagSet | ... = ...,
-               # FIXME: make some of the more obscure style things "nicer" (eg enums?) or just pass through existing values?
-               default_style: str | ... = ..., default_flow_style: bool | ... = ...,
-               # FIXME: properly type-annotate the rest of these
-               canonical=..., indent=..., width=...,
-               allow_unicode=..., line_break=...,
-               encoding=..., explicit_start=..., explicit_end=...,
-               version=..., tags=..., sort_keys=...,
-               **kwargs) -> type[T]:
+    def config(cls: _LoaderProtocol, *, tagset: TagSet | ... = ...) -> _LoaderProtocol: ...
 
-        if not type_name:
-            # FIXME: hash the inputs for a dynamic type name and cache it?
-            type_name = f'abcd_from_{cls.__name__}'
 
-        # preserve wrapped config defaults for values where we didn't get a default
-        # FIXME: share this code with the one in __init__.dump_all (and implement on others)
-        dumper_init_kwargs = dict(
-            default_style=default_style,
-            default_flow_style=default_flow_style,
-            canonical=canonical, indent=indent, width=width,
-            allow_unicode=allow_unicode, line_break=line_break,
-            encoding=encoding, version=version, tags=tags,
-            explicit_start=explicit_start, explicit_end=explicit_end, sort_keys=sort_keys, **kwargs)
+class _DumperProtocol(t.Protocol):
+    @classmethod
+    def dump(cls, data, stream=None, dumper: _DumperProtocol | None = None, **kwargs) -> t.Any:
+        import yaml
+        return yaml._old_dump(data, stream, Dumper=dumper or cls, **kwargs)
 
-        dumper_init_kwargs = {k: v for k, v in dumper_init_kwargs.items() if v is not ...}
 
-        patched_init = partialmethod(cls.__init__,
-                                     **dumper_init_kwargs)
+class DumperConfigMixin(_YamlConfigurable, _DumperProtocol):  # FIXME: move the args opt-in to the mixin graft sites
+    @classmethod
+    # FIXME: @t.override
+    def _config_impl(cls, **kwargs) -> t.Any:
+        sig = inspect.signature(cls._actual_sig)
+        ba = sig.bind(**kwargs)
 
-        new_type = t.cast(cls, type(type_name, (cls, ), {'__init__': patched_init}))
+        # FIXME: merge existing config;
+        patched_init = partialmethod(cls.__init__, **ba.kwargs)
+
+        new_type = _type_factory(cls)
+
+        # FIXME: pass via dict in type constructor, or ? (dict breaks lru_cache on type_factory)
+        new_type.__init__ = patched_init
+
+        # FIXME: until all the builtins bootstrap this way, figure out a sane default for origin classes and user classes?
+        # FIXME: merge existing config;
+        new_type._stored_config = ba.kwargs
+
+        # FIXME: add support for arbitrary kwargs passthru ala dumper?
+
+        tagset = ba.kwargs.get('tagset', ...)
 
         # FIXME: support all the dynamic dispatch types (multi*, etc)
         if tagset is not ...:
@@ -73,3 +111,22 @@ class DumperConfigMixin:
             new_type.init_representers(tagset.representers)
 
         return new_type
+
+
+class CommonDumperConfig(DumperConfigMixin):
+    @classmethod
+    def config(cls: _DumperProtocol, *,
+               tagset: TagSet | ... = ...,
+               default_style: str | None | ... = ...,
+               default_flow_style: str | None | ... = ...,
+               canonical: bool | None | ... = ...,
+               indent: int | None | ... = ...,
+               width: int | None | ... = ...,
+               allow_unicode: bool | None | ... = ...,
+               line_break: bool | None | ... = ...,
+               encoding: str | None | ... = ...,
+               version: str | None | ... = ...,
+               tags: list[str] | None | ... = ...,
+               explicit_start: bool | None | ... = ...,
+               explicit_end: bool | None | ... = ...,
+               sort_keys: bool | None | ... = ..., ) -> _DumperProtocol: ...

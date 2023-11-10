@@ -6,7 +6,7 @@ __all__ = [
 
 from yaml._yaml import CParser, CEmitter
 
-from .config import LoaderConfigMixin, DumperConfigMixin
+from .config import CommonLoaderConfig, CommonDumperConfig
 from .constructor import *
 
 from .serializer import *
@@ -14,42 +14,42 @@ from .representer import *
 
 from .resolver import *
 
-class CBaseLoader(CParser, BaseConstructor, BaseResolver, LoaderConfigMixin):
+class CBaseLoader(CParser, BaseConstructor, BaseResolver, CommonLoaderConfig):
 
     def __init__(self, stream):
         CParser.__init__(self, stream)
         BaseConstructor.__init__(self)
         BaseResolver.__init__(self)
 
-class CSafeLoader(CParser, SafeConstructor, Resolver):
+class CSafeLoader(CParser, SafeConstructor, Resolver, CommonLoaderConfig):
 
     def __init__(self, stream):
         CParser.__init__(self, stream)
         SafeConstructor.__init__(self)
         Resolver.__init__(self)
 
-class CFullLoader(CParser, FullConstructor, Resolver):
+class CFullLoader(CParser, FullConstructor, Resolver, CommonLoaderConfig):
 
     def __init__(self, stream):
         CParser.__init__(self, stream)
         FullConstructor.__init__(self)
         Resolver.__init__(self)
 
-class CUnsafeLoader(CParser, UnsafeConstructor, Resolver):
+class CUnsafeLoader(CParser, UnsafeConstructor, Resolver, CommonLoaderConfig):
 
     def __init__(self, stream):
         CParser.__init__(self, stream)
         UnsafeConstructor.__init__(self)
         Resolver.__init__(self)
 
-class CLoader(CParser, Constructor, Resolver, LoaderConfigMixin):
+class CLoader(CParser, Constructor, Resolver, CommonLoaderConfig):
 
     def __init__(self, stream):
         CParser.__init__(self, stream)
         Constructor.__init__(self)
         Resolver.__init__(self)
 
-class CBaseDumper(CEmitter, BaseRepresenter, BaseResolver):
+class CBaseDumper(CEmitter, BaseRepresenter, CommonDumperConfig):
 
     def __init__(self, stream,
             default_style=None, default_flow_style=False,
@@ -66,7 +66,7 @@ class CBaseDumper(CEmitter, BaseRepresenter, BaseResolver):
                 default_flow_style=default_flow_style, sort_keys=sort_keys)
         Resolver.__init__(self)
 
-class CSafeDumper(CEmitter, SafeRepresenter, Resolver):
+class CSafeDumper(CEmitter, SafeRepresenter, Resolver, CommonDumperConfig):
 
     def __init__(self, stream,
             default_style=None, default_flow_style=False,
@@ -83,7 +83,7 @@ class CSafeDumper(CEmitter, SafeRepresenter, Resolver):
                 default_flow_style=default_flow_style, sort_keys=sort_keys)
         Resolver.__init__(self)
 
-class CDumper(CEmitter, Serializer, Representer, Resolver, DumperConfigMixin):
+class CDumper(CEmitter, Serializer, Representer, Resolver, CommonDumperConfig):
 
     def __init__(self, stream,
             default_style=None, default_flow_style=False,

@@ -1,3 +1,6 @@
+import copy
+import sys
+import typing as t
 
 from .error import *
 
@@ -71,7 +74,7 @@ def compose_all(stream, Loader=Loader):
     finally:
         loader.dispose()
 
-def load(stream, Loader):
+def _old_load(stream, Loader):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -254,7 +257,7 @@ def dump_all(documents, stream=None, Dumper=Dumper,
     if getvalue:
         return getvalue()
 
-def dump(data, stream=None, Dumper=Dumper, **kwds):
+def _old_dump(data, stream=None, Dumper=Dumper, **kwds):
     """
     Serialize a Python object into a YAML stream.
     If stream is None, return the produced string instead.
@@ -407,3 +410,51 @@ class YAMLObject(metaclass=YAMLObjectMetaclass):
         return dumper.represent_yaml_object(cls.yaml_tag, data, cls,
                 flow_style=cls.yaml_flow_style)
 
+
+class _YamlConfig:
+    from yaml.config import _LoaderProtocol, _DumperProtocol
+    default_loader: _LoaderProtocol = SafeLoader
+    default_dumper: _DumperProtocol = SafeDumper
+
+    def load(self, stream, loader: _LoaderProtocol | None = None, **kwargs) -> t.Any:
+        # FIXME: pop/resolve/warn on old Loader kwarg
+        loader = loader or self.default_loader
+        return loader.load(stream, Loader=loader, **kwargs)
+
+    def dump(self, data, stream=None, dumper: _DumperProtocol | None = None, **kwargs) -> t.Any:
+        # FIXME: pop/resolve/warn on old Dumper kwarg
+        dumper = dumper or self.default_dumper
+        return dumper.dump(data, stream, dumper=dumper, **kwargs)
+
+    def config_loader(self, loader: _LoaderProtocol, **kwargs) -> t.Self:
+        return self._overlay_copy(default_loader=loader, **kwargs)
+
+    def config_dumper(self, dumper: _DumperProtocol, **kwargs) -> t.Self:
+        return self._overlay_copy(default_dumper=dumper, **kwargs)
+
+    def _overlay_copy(self, default_loader: _LoaderProtocol = None, default_dumper=None, **kwargs) -> t.Self:
+        new_config = _YamlConfig()
+
+        if default_loader:
+            new_config.default_loader = default_loader.config(**kwargs)
+        else:
+            new_config.default_loader = self.default_loader
+
+        if default_dumper:
+            new_config.default_dumper = default_dumper.config(**kwargs)
+        else:
+            new_config.default_dumper = self.default_dumper
+
+        return new_config
+
+    def __getattr__(self, item):
+        return getattr(sys.modules[__name__], item)
+
+
+_default_config = _YamlConfig()
+
+config_loader = _default_config.config_loader
+config_dumper = _default_config.config_dumper
+load = _default_config.load
+dump = _default_config.dump
+# FIXME: patch all the other top-level methods to use a config as well (and migrate the actual impls elsewhere)?

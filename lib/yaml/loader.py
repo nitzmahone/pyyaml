@@ -17,8 +17,9 @@ try:
 except ImportError as ie:
     FastestBaseLoader = None
 
+from .config import CommonLoaderConfig
 
-class BaseLoader(Reader, Scanner, Parser, Composer, BaseConstructor, BaseResolver, LoaderConfigMixin):
+class BaseLoader(Reader, Scanner, Parser, Composer, BaseConstructor, BaseResolver, CommonLoaderConfig):
     def __init__(self, stream):
         Reader.__init__(self, stream)
         Scanner.__init__(self)
@@ -44,7 +45,7 @@ if not FastestBaseLoader:
 # UnsafeLoader = FastestBaseLoader.config(type_name='UnsafeLoader', tagset=tagset.yaml11 | tagset.python_unsafe)
 # this pattern will also allow a much easier path for users to bolt on default behavior to any old loader
 
-class FullLoader(Reader, Scanner, Parser, Composer, FullConstructor, Resolver, LoaderConfigMixin):
+class FullLoader(Reader, Scanner, Parser, Composer, FullConstructor, Resolver, CommonLoaderConfig):
 
     def __init__(self, stream):
         Reader.__init__(self, stream)
@@ -54,7 +55,7 @@ class FullLoader(Reader, Scanner, Parser, Composer, FullConstructor, Resolver, L
         FullConstructor.__init__(self)
         Resolver.__init__(self)
 
-class SafeLoader(Reader, Scanner, Parser, Composer, SafeConstructor, Resolver, LoaderConfigMixin):
+class SafeLoader(Reader, Scanner, Parser, Composer, SafeConstructor, Resolver, CommonLoaderConfig):
 
     def __init__(self, stream):
         Reader.__init__(self, stream)
@@ -64,7 +65,7 @@ class SafeLoader(Reader, Scanner, Parser, Composer, SafeConstructor, Resolver, L
         SafeConstructor.__init__(self)
         Resolver.__init__(self)
 
-class Loader(Reader, Scanner, Parser, Composer, Constructor, Resolver, LoaderConfigMixin):
+class Loader(Reader, Scanner, Parser, Composer, Constructor, Resolver, CommonLoaderConfig):
 
     def __init__(self, stream):
         Reader.__init__(self, stream)
@@ -78,7 +79,7 @@ class Loader(Reader, Scanner, Parser, Composer, Constructor, Resolver, LoaderCon
 # untrusted input). Use of either Loader or UnsafeLoader should be rare, since
 # FullLoad should be able to load almost all YAML safely. Loader is left intact
 # to ensure backwards compatibility.
-class UnsafeLoader(Reader, Scanner, Parser, Composer, Constructor, Resolver, LoaderConfigMixin):
+class UnsafeLoader(Reader, Scanner, Parser, Composer, Constructor, Resolver, CommonLoaderConfig):
 
     def __init__(self, stream):
         Reader.__init__(self, stream)
@@ -89,6 +90,6 @@ class UnsafeLoader(Reader, Scanner, Parser, Composer, Constructor, Resolver, Loa
         Resolver.__init__(self)
 
 
-_12_CoreLoader = BaseLoader.config(type_name='_12_CoreLoader', tagset=tagset.core)
-_12_JSONLoader = BaseLoader.config(type_name='_12_JSONLoader', tagset=tagset.json)
+_12_CoreLoader = BaseLoader.config(tagset=tagset.core)
+_12_JSONLoader = BaseLoader.config(tagset=tagset.json)
 
